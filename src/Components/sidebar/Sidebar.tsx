@@ -12,8 +12,8 @@ import { Link } from 'react-router-dom';
 
 export const HomePage = () => <div className="p-6 text-2xl">Home Dashboard</div>;
 interface SidebarProps {
-  user: { firstName: string }; // User prop to get the user's first name
-  onLogout: () => void; // Logout function prop
+  user: { firstName: string };
+  onLogout: () => void; 
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {

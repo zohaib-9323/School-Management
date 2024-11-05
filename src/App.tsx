@@ -3,7 +3,7 @@ import LoginPage from "./Components/pages/Login/Login";
 import SignUpPage from "./Components/pages/SignUp/Signup";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./Components/sidebar/Sidebar";
-import { HomePage } from "./Components/sidebar/Sidebar";
+import HomePage from './Components/sidebar/Home';
 import StudentDashboard from './Components/sidebar/StudentDashboard';
 import CoursesManagement from './Components/sidebar/CourseManagement';
 import TeacherManagement from './Components/sidebar/Teachers';

@@ -29,6 +29,10 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp, onSwitchToLogin }) =>
         setError('Please enter a valid email address');
         return;
     }
+    if (!isValidPassword(password)) {
+      setError('Password must be at least 8 characters long, contain one uppercase letter, one number, and one special character');
+      return;
+    }
 
     if (password !== confirmPassword) {
         setError('Passwords do not match');
@@ -70,6 +74,10 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp, onSwitchToLogin }) =>
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+  const isValidPassword = (password: string) => {
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+    return passwordRegex.test(password);
   };
 
   const togglePasswordVisibility = () => {

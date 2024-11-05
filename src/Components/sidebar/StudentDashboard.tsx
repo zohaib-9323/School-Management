@@ -12,24 +12,18 @@ import EditStudentModal from "./Student/EditStudentModal";
 import DeleteConfirmationModal from "./Student/DeleteConfirmmationModal";
 
 interface Course {
-  id: number; // Assuming courses have an id property
-  name: string; // Assuming courses have a name property
+  id: number; 
+  name: string;
 }
 
 interface Student {
-  id: string; // Changed to string to match _id from API
+  id: string; 
   Name: string;
   Department: string;
   grade: string;
-  status: "Active" | "Inactive"; // Define if you have a status field
+  status: "Active" | "Inactive"; 
   courses: Course[];
 }
-interface AddStudentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: (student: Omit<Student, "id">) => Promise<void>; // Ensure it matches this type
-}
-
 
 const StudentDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,45 +36,42 @@ const StudentDashboard: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+ 
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:5005/student/getstudent"
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const data = await response.json();
+
+      const transformedData = data.students.map((student: any) => ({
+        id: student._id,
+        Name: student.Name,
+        Department: student.Department,
+        grade: student.grade,
+        status: student.status || "Active",
+        courses: student.courses.map((course:string, index:number) =>({
+          id: index,
+          name: course
+        }))
+      }));
+
+      setStudents(transformedData);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "An unknown error occurred."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const response = await fetch(
-          "http://localhost:5005/student/getstudent"
-        );
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-        console.log("data of student", data);
-
-        const transformedData = data.students.map((student: any) => ({
-          id: student._id,
-          Name: student.Name,
-          Department: student.Department,
-          grade: student.grade,
-          status: student.status || "Active",
-          courses: student.courses.map((course:string, index:number) =>({
-            id: index,
-            name: course
-          }))
-        }));
-
-        setStudents(transformedData);
-      } catch (error) {
-        setError(
-          error instanceof Error ? error.message : "An unknown error occurred."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStudents();
   }, []);
-
-  console.log("State",students)
 
   const handleSort = (field: keyof Student) => {
     if (field === sortField) {
@@ -90,104 +81,45 @@ const StudentDashboard: React.FC = () => {
       setSortDirection("asc");
     }
   };
-  const handleAddStudent = async (newStudent: Omit<Student, "id">): Promise<void> => {
-    if (!newStudent.Name || !newStudent.grade || !newStudent.Department) {
-      alert("Please fill in all required fields.");
-      return;
-    }
   
-    try {
-      
-      setLoading(true); 
-  
-      const response = await fetch("http://localhost:5005/student/creatstudent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newStudent),
-      });
-  
-      
-      if (!response.ok) {
-        const errorMessage = await response.text(); // Get error message from response
-        throw new Error(`Error: ${response.status} ${errorMessage}`);
-      }
-  
-     
-      const studentToAdd = await response.json();
-      setStudents((prev) => [...prev, studentToAdd]);
-  
-     
-      alert("Student added successfully!");
-    } catch (error) {
-      console.error("Failed to add student:", error);
-      alert("Failed to add student. Please try again.");
-    } finally {
-      setLoading(false); 
-    }
-  };
-  
-  
-
   const handleEditClick = (student: Student) => {
     setSelectedStudent(student);
     setIsEditModalOpen(true);
   };
-
-  const handleEditSave = async (updatedStudent: Student) => {
-    const response = await fetch(
-      `http://localhost:5005/student/updatestudent`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedStudent),
-      }
-    );
-
-    if (response.ok) {
-      const updated = await response.json();
-      setStudents((prev) =>
-        prev.map((student) => (student.id === updated.id ? updated : student))
-      );
-      setIsEditModalOpen(false);
-      setSelectedStudent(null);
-    } else {
-      // Handle error
-    }
-  };
-
   const handleRemoveStudent = (id: string) => {
     setSelectedStudent(students.find((student) => student.id === id) || null);
     setIsDeleteConfirmOpen(true);
   };
-
-  const confirmDelete = async () => {
-    if (selectedStudent) {
-      const response = await fetch(
-        `http://localhost:5005/student/deletestudent`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ id: selectedStudent.id }),
-        }
-      );
-
-      if (response.ok) {
-        setStudents((prev) =>
-          prev.filter((student) => student.id !== selectedStudent.id)
+  const confirmDelete = async (id: string) => {
+    if (id) {
+      try {
+        const response = await fetch(
+          `http://localhost:5005/student/deletestudent/${id}`,  
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
         );
-      } else {
-        // Handle error
+  
+        if (response.ok) {
+          setStudents((prev) =>
+            prev.filter((student) => student.id !== id)
+          );
+        } else {
+          const errorData = await response.json();
+          setError(errorData.message || "Failed to delete student.");
+        }
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "An unknown error occurred.");
       }
     }
+  
     setIsDeleteConfirmOpen(false);
     setSelectedStudent(null);
   };
+  
 
   const sortedStudents = [...students].sort((a, b) => {
     const modifier = sortDirection === "asc" ? 1 : -1;
@@ -201,7 +133,6 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <>
-      {/* Search and Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <div className="relative w-full sm:w-64">
           <input
@@ -221,8 +152,6 @@ const StudentDashboard: React.FC = () => {
           Add New Student
         </button>
       </div>
-
-      {/* Students Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -324,27 +253,25 @@ const StudentDashboard: React.FC = () => {
           </table>
         </div>
       </div>
-
-      {/* Modals */}
-      {/* <AddStudentModal
+      <AddStudentModal
         isOpen={isAddStudentModalOpen}
         onClose={() => setIsAddStudentModalOpen(false)}
-        onAdd={handleAddStudent}
-      /> */}
-      {/* <EditStudentModal
+        fetchStudents={fetchStudents}
+      />
+      <EditStudentModal
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
           setSelectedStudent(null);
         }}
         student={selectedStudent}
-        onSave={handleEditSave}
-      /> */}
+        fetchStudents={fetchStudents}
+      />
       <DeleteConfirmationModal
         isOpen={isDeleteConfirmOpen}
         onClose={() => setIsDeleteConfirmOpen(false)}
-        onConfirm={confirmDelete}
-        studentName={selectedStudent?.Name || null} // Ensure you use the correct property name
+        onConfirm={() => confirmDelete(selectedStudent?.id || '')}
+        studentName={selectedStudent?.Name || null} 
       />
     </>
   );
