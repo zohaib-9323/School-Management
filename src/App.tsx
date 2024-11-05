@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import LoginPage from "./Components/pages/Login/Login";
 import SignUpPage from "./Components/pages/SignUp/Signup";
-import Dashboard from './Components/sidebar/Dashboard';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./Components/sidebar/Sidebar";
 import { HomePage } from "./Components/sidebar/Sidebar";
 import StudentDashboard from './Components/sidebar/StudentDashboard';
 import CoursesManagement from './Components/sidebar/CourseManagement';
 import TeacherManagement from './Components/sidebar/Teachers';
+
 interface User {
   firstName: string;
   lastName: string;
@@ -16,61 +16,59 @@ interface User {
 }
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<
-    "login" | "signup" | "dashboard"
-  >("login");
+  const [currentPage, setCurrentPage] = useState<"login" | "signup" | "dashboard">("login");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
 
+  // Load user data from localStorage on initial mount
   useEffect(() => {
-    const storedUsers = localStorage.getItem("users");
-    if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
-    }
-
-    const loggedInUser = localStorage.getItem("currentUser");
-    if (loggedInUser) {
+    const storedUser = localStorage.getItem('currentUser');
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
       setIsLoggedIn(true);
-      setCurrentUser(JSON.parse(loggedInUser));
       setCurrentPage("dashboard");
     }
   }, []);
 
-  const handleLogin = (email: string, password: string) => {
-    const user = users.find(
-      (u) => u.email === email && u.password === password
-    );
-    if (user) {
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const response = await fetch("http://localhost:5005/auth/login", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Invalid email or password');
+      }
+  
+      const userData = await response.json();
       setIsLoggedIn(true);
-      setCurrentUser(user);
-      localStorage.setItem("currentUser", JSON.stringify(user));
+      setCurrentUser(userData);
+      localStorage.setItem('currentUser', JSON.stringify(userData)); // Store user data
       setCurrentPage("dashboard");
-      return true;
+    } catch (error) {
+      console.error(error); // Handle error appropriately
     }
-    return false;
   };
-
-  const handleSignUp = (
-    firstName: string,
-    lastName: string,
-    email: string,
-    password: string
-  ) => {
+  
+  const handleSignUp = (firstName: string, lastName: string, email: string, password: string) => {
     const newUser = { firstName, lastName, email, password };
     const updatedUsers = [...users, newUser];
     setUsers(updatedUsers);
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
     setIsLoggedIn(true);
     setCurrentUser(newUser);
-    localStorage.setItem("currentUser", JSON.stringify(newUser));
+    localStorage.setItem('currentUser', JSON.stringify(newUser)); // Store user data
     setCurrentPage("dashboard");
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentUser(null);
-    localStorage.removeItem("currentUser");
+    localStorage.removeItem('currentUser'); // Clear user data from localStorage
     setCurrentPage("login");
   };
 
@@ -78,24 +76,22 @@ const App: React.FC = () => {
   const switchToLogin = () => setCurrentPage("login");
 
   if (isLoggedIn && currentUser) {
-        return <Dashboard user={currentUser} onLogout={handleLogout} />;
-    // return(
-    // <Router>
-    //   <div className="flex h-screen">
-    //     <Sidebar />
-
-    //     <main className="flex-1 p-6 overflow-y-auto bg-gray-100">
-    //       <Routes>
-    //         <Route path="/" element={<HomePage />} />
-    //         <Route path="/profile" element={<TeacherManagement />} />
-    //         <Route path="/students" element={<StudentDashboard />} />
-    //         <Route path="/courses" element={<CoursesManagement />} />
-    //       </Routes>
-    //     </main>
-    //   </div>
-    // </Router>
-    // );
-  };
+    return (
+      <Router>
+        <div className="flex h-screen">
+          <Sidebar user={currentUser} onLogout={handleLogout} />
+          <main className="flex-1 p-6 overflow-y-auto bg-gray-100">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/teachers" element={<TeacherManagement />} />
+              <Route path="/students" element={<StudentDashboard />} />
+              <Route path="/courses" element={<CoursesManagement />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    );
+  }
 
   return (
     <div>

@@ -1,105 +1,206 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Users, UserCheck, ArrowUpRight, 
-  ArrowDown, ArrowUp, Search, UserPlus, GraduationCap, Trash2
-} from 'lucide-react';
-import studentData from '../Data/studentdata.json'; // Adjust the path if necessary
+import React, { useState, useEffect } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Search,
+  UserPlus,
+  Trash2,
+  Edit2,
+} from "lucide-react";
+import AddStudentModal from "./Student/AddStudent";
+import EditStudentModal from "./Student/EditStudentModal";
+import DeleteConfirmationModal from "./Student/DeleteConfirmmationModal";
 
-interface Student {
-  id: number;
-  name: string;
-  grade: string;
-  attendance: string;
-  department: string;
-  status: 'Active' | 'Inactive';
+interface Course {
+  id: number; // Assuming courses have an id property
+  name: string; // Assuming courses have a name property
 }
 
+interface Student {
+  id: string; // Changed to string to match _id from API
+  Name: string;
+  Department: string;
+  grade: string;
+  status: "Active" | "Inactive"; // Define if you have a status field
+  courses: Course[];
+}
+interface AddStudentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (student: Omit<Student, "id">) => Promise<void>; // Ensure it matches this type
+}
+
+
 const StudentDashboard: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<keyof Student>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<keyof Student>("Name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [students, setStudents] = useState<Student[]>([]);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
-  const [newStudent, setNewStudent] = useState<Omit<Student, 'id'>>({
-    name: '',
-    grade: '',
-    attendance: '',
-    department: '',
-    status: 'Active'
-  });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setStudents(studentData as Student[]);
+    const fetchStudents = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5005/student/getstudent"
+        );
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+        console.log("data of student", data);
+
+        const transformedData = data.students.map((student: any) => ({
+          id: student._id,
+          Name: student.Name,
+          Department: student.Department,
+          grade: student.grade,
+          status: student.status || "Active",
+          courses: student.courses.map((course:string, index:number) =>({
+            id: index,
+            name: course
+          }))
+        }));
+
+        setStudents(transformedData);
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : "An unknown error occurred."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
   }, []);
+
+  console.log("State",students)
 
   const handleSort = (field: keyof Student) => {
     if (field === sortField) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setNewStudent(prev => ({
-      ...prev,
-      [name]: name === 'attendance' ? Number(value) : value
-    }));
-  };
-
-  const handleAddStudent = () => {
-    // Validate input
-    if (!newStudent.name || !newStudent.grade || !newStudent.department) {
-      alert('Please fill in all required fields');
+  const handleAddStudent = async (newStudent: Omit<Student, "id">): Promise<void> => {
+    if (!newStudent.Name || !newStudent.grade || !newStudent.Department) {
+      alert("Please fill in all required fields.");
       return;
     }
+  
+    try {
+      
+      setLoading(true); 
+  
+      const response = await fetch("http://localhost:5005/student/creatstudent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newStudent),
+      });
+  
+      
+      if (!response.ok) {
+        const errorMessage = await response.text(); // Get error message from response
+        throw new Error(`Error: ${response.status} ${errorMessage}`);
+      }
+  
+     
+      const studentToAdd = await response.json();
+      setStudents((prev) => [...prev, studentToAdd]);
+  
+     
+      alert("Student added successfully!");
+    } catch (error) {
+      console.error("Failed to add student:", error);
+      alert("Failed to add student. Please try again.");
+    } finally {
+      setLoading(false); 
+    }
+  };
+  
+  
 
-    // Create new student with a unique ID
-    const studentToAdd = {
-      ...newStudent,
-      id: students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1
-    };
-
-    // Add student and close modal
-    setStudents(prev => [...prev, studentToAdd]);
-    setNewStudent({
-      name: '',
-      grade: '',
-      attendance: '',
-      department: '',
-      status: 'Active'
-    });
-    setIsAddStudentModalOpen(false);
+  const handleEditClick = (student: Student) => {
+    setSelectedStudent(student);
+    setIsEditModalOpen(true);
   };
 
-  const handleRemoveStudent = (id: number) => {
-    setStudents(prev => prev.filter(student => student.id !== id));
+  const handleEditSave = async (updatedStudent: Student) => {
+    const response = await fetch(
+      `http://localhost:5005/student/updatestudent`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedStudent),
+      }
+    );
+
+    if (response.ok) {
+      const updated = await response.json();
+      setStudents((prev) =>
+        prev.map((student) => (student.id === updated.id ? updated : student))
+      );
+      setIsEditModalOpen(false);
+      setSelectedStudent(null);
+    } else {
+      // Handle error
+    }
   };
 
-  const totalStudents = students.length;
-  const activeStudents = students.filter(s => s.status === 'Active').length;
-//   const averageAttendance = totalStudents > 0 
-//     ? (students.reduce((acc, curr) => acc + curr.attendance, 0) / totalStudents).toFixed(1)
-//     : '0.0';
-//   const excellentStudents = students.filter(s => s.grade.startsWith('A')).length;
+  const handleRemoveStudent = (id: string) => {
+    setSelectedStudent(students.find((student) => student.id === id) || null);
+    setIsDeleteConfirmOpen(true);
+  };
 
-  // Sorting logic
+  const confirmDelete = async () => {
+    if (selectedStudent) {
+      const response = await fetch(
+        `http://localhost:5005/student/deletestudent`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: selectedStudent.id }),
+        }
+      );
+
+      if (response.ok) {
+        setStudents((prev) =>
+          prev.filter((student) => student.id !== selectedStudent.id)
+        );
+      } else {
+        // Handle error
+      }
+    }
+    setIsDeleteConfirmOpen(false);
+    setSelectedStudent(null);
+  };
+
   const sortedStudents = [...students].sort((a, b) => {
-    const modifier = sortDirection === 'asc' ? 1 : -1;
+    const modifier = sortDirection === "asc" ? 1 : -1;
     if (a[sortField] < b[sortField]) return -1 * modifier;
     if (a[sortField] > b[sortField]) return 1 * modifier;
     return 0;
   });
 
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
   return (
     <>
-      {/* Summary Cards (Unchanged) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* ... (previous summary cards code remains the same) */}
-      </div>
-
       {/* Search and Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <div className="relative w-full sm:w-64">
@@ -112,7 +213,7 @@ const StudentDashboard: React.FC = () => {
           />
           <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
         </div>
-        <button 
+        <button
           onClick={() => setIsAddStudentModalOpen(true)}
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition-colors"
         >
@@ -127,53 +228,95 @@ const StudentDashboard: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th 
+                <th
                   className="px-6 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer"
-                  onClick={() => handleSort('name')}
+                  onClick={() => handleSort("Name")}
                 >
                   <div className="flex items-center gap-2">
                     Name
-                    {sortField === 'name' && (
-                      sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                    )}
+                    {sortField === "Name" &&
+                      (sortDirection === "asc" ? (
+                        <ArrowUp className="w-4 h-4" />
+                      ) : (
+                        <ArrowDown className="w-4 h-4" />
+                      ))}
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Grade</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Contact</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Department</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">
+                  Grade
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">
+                  Department
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">
+                  Courses
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {sortedStudents
-                .filter(student => 
-                  student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  student.department.toLowerCase().includes(searchTerm.toLowerCase())
+                .filter(
+                  (student) =>
+                    student.Name.toLowerCase().includes(
+                      searchTerm.toLowerCase()
+                    ) ||
+                    student.Department.toLowerCase().includes(
+                      searchTerm.toLowerCase()
+                    )
                 )
                 .map((student) => (
                   <tr key={student.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">{student.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{student.grade}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{student.attendance}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{student.department}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {student.Name}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {student.grade}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {student.Department}
+                    </td>
                     <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        student.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      {student.courses && student.courses.length > 0 ? (
+                        student.courses.map((course) => course.name).join(", ")
+                      ) : (
+                        <span className="text-gray-500">
+                          No courses assigned
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4 text-sm">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          student.status === "Active"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
                         {student.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <button 
-                        onClick={() => handleRemoveStudent(student.id)}
-                        className="text-red-500 hover:text-red-700"
-                        title="Remove Student"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => handleEditClick(student)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Edit2 className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveStudent(student.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -182,111 +325,27 @@ const StudentDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Student Modal */}
-      {isAddStudentModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-96">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Add New Student</h3>
-              <button 
-                onClick={() => setIsAddStudentModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block mb-2 font-medium">Name</label>
-                <input 
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={newStudent.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter student name"
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="grade" className="block mb-2 font-medium">Grade</label>
-                <input 
-                  id="grade"
-                  name="grade"
-                  type="text"
-                  value={newStudent.grade}
-                  onChange={handleInputChange}
-                  placeholder="Enter student grade"
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="attendance" className="block mb-2 font-medium">Contact</label>
-                <input 
-                  id="attendance"
-                  name="attendance"
-                  type="string"
-                  value={newStudent.attendance}
-                  onChange={handleInputChange}
-                  placeholder="Enter contact number"
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="0"
-                  max="100"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="department" className="block mb-2 font-medium">Department</label>
-                <input 
-                  id="department"
-                  name="department"
-                  type="text"
-                  value={newStudent.department}
-                  onChange={handleInputChange}
-                  placeholder="Enter student department"
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="status" className="block mb-2 font-medium">Status</label>
-                <select
-                  id="status"
-                  name="status"
-                  value={newStudent.status}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-
-              <div className="flex space-x-4">
-                <button 
-                  onClick={() => setIsAddStudentModalOpen(false)}
-                  className="w-full bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleAddStudent}
-                  className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-colors"
-                >
-                  Add Student
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modals */}
+      {/* <AddStudentModal
+        isOpen={isAddStudentModalOpen}
+        onClose={() => setIsAddStudentModalOpen(false)}
+        onAdd={handleAddStudent}
+      /> */}
+      {/* <EditStudentModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        student={selectedStudent}
+        onSave={handleEditSave}
+      /> */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        studentName={selectedStudent?.Name || null} // Ensure you use the correct property name
+      />
     </>
   );
 };

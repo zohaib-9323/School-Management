@@ -1,23 +1,22 @@
-
 import React, { useState } from 'react';
-import { 
-  BrowserRouter as Router, 
-  Routes, 
-  Route, 
-  Link 
-} from 'react-router-dom';
 import { 
   Home, 
   User,  
   Menu, 
-  X ,
+  X,
   GraduationCap,
   BookOpen,
+  LogOut,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const HomePage = () => <div className="p-6 text-2xl">Home Dashboard</div>;
+interface SidebarProps {
+  user: { firstName: string }; // User prop to get the user's first name
+  onLogout: () => void; // Logout function prop
+}
 
-const Sidebar = () => {
+const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const sidebarLinks = [
@@ -44,7 +43,6 @@ const Sidebar = () => {
   ];
 
   return (
-    
     <div className="flex h-screen">
       <button 
         onClick={() => setIsOpen(!isOpen)} 
@@ -53,38 +51,35 @@ const Sidebar = () => {
         {isOpen ? <X /> : <Menu />}
       </button>
       <div 
-        className={`
-          fixed md:relative z-40 
-          w-64 h-full 
-          bg-gray-800 text-white 
-          transform transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0
-        `}
+        className={`fixed md:relative z-40 w-64 h-full bg-gray-800 text-white transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         <div className="p-6 text-2xl font-bold border-b border-gray-700">
           My App
         </div>
-
+        
         <nav className="mt-10">
           {sidebarLinks.map((link) => (
             <Link 
               key={link.path}
               to={link.path}
               onClick={() => setIsOpen(false)}
-              className="
-                flex items-center 
-                px-6 py-3 
-                hover:bg-gray-700 
-                transition-colors 
-                duration-200
-              "
+              className="flex items-center px-6 py-3 hover:bg-gray-700 transition-colors duration-200"
             >
               {link.icon}
               <span className="ml-3">{link.label}</span>
             </Link>
           ))}
         </nav>
+        <div className="p-4 border-b border-gray-700">
+          {/* <span className="text-gray-300">{user.firstName}</span> */}
+          <button
+            onClick={onLogout}
+            className="mt-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <span><LogOut className="w-20 h-5" />Logout</span>
+            
+          </button>
+        </div>
       </div>
 
       {isOpen && (
@@ -97,4 +92,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar
+export default Sidebar;

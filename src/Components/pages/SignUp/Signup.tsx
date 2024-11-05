@@ -16,32 +16,56 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSignUp, onSwitchToLogin }) =>
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      setError('Please fill in all fields');
-      return;
+        setError('Please fill in all fields');
+        return;
     }
 
     if (!isValidEmail(email)) {
-      setError('Please enter a valid email address');
-      return;
+        setError('Please enter a valid email address');
+        return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+        setError('Passwords do not match');
+        return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return;
+        setError('Password must be at least 8 characters long');
+        return;
     }
 
-    onSignUp(firstName, lastName, email, password);
-  };
+    try {
+        const url = "http://localhost:5005/auth/signup";
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                firstName,
+                lastName,
+                email,
+                password,
+            }),
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            setError(data.message || 'Failed to sign up');
+            return;
+        }
+        onSignUp(firstName, lastName, email, password);
+    } catch (error) {
+        setError('Failed to connect to server');
+    }
+};
+
 
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -52,7 +52,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
       <aside className={`bg-white w-64 min-h-screen flex flex-col transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:relative z-10`}>
         <div className="p-4 border-b">
           <h2 className="text-2xl font-semibold">School Dashboard</h2>
@@ -63,7 +62,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               key={item.id}
               onClick={() => {
                 setActivePage(item.id);
-                setIsSidebarOpen(false); // Close sidebar on item click
+                setIsSidebarOpen(false);
               }}
               className={`flex items-center w-full px-4 py-2 mt-2 text-sm font-semibold text-left rounded-lg ${activePage === item.id ? 'bg-gray-200 text-gray-900' : 'bg-transparent text-gray-600 hover:bg-gray-100'}`}
             >
@@ -73,8 +72,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           ))}
         </nav>
       </aside>
-
-      {/* Main content */}
       <div className="flex-1 flex flex-col">
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
