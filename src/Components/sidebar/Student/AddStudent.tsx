@@ -33,6 +33,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, fetc
   const [loading, setLoading] = useState(false);
   const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
   const [courseError, setCourseError] = useState<string>('');
+  const [gradeError, setGradeError] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
@@ -85,14 +86,34 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, fetc
     });
   };
 
+  // Grade validation function
+  const validateGrade = (grade: string) => {
+    const validGrades = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const validWithModifiers = validGrades.map(g => [g, `${g}+`, `${g}-`]).flat();
+
+    if (!validWithModifiers.includes(grade.toUpperCase())) {
+      setGradeError('Grade must be one of the following: A, A+, A-, B, B+, B-, C, C+, C-, D, D+, D-, E, E+, E-, F, F+.');
+      return false;
+    }
+
+    setGradeError('');
+    return true;
+  };
+
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     const { Name, grade, Department, courses } = newStudent;
-    
+
+    // Validate required fields and grade
     if (!Name || !grade || !Department || courses.length === 0) {
       alert('Please fill in all required fields and select at least one course.');
       return;
     }
+
+    if (!validateGrade(grade)) {
+      return; // Stop form submission if the grade is invalid
+    }
+
     const courseNames = courses;
     const studentToAdd = {
       Name,
@@ -128,7 +149,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, fetc
     } finally {
       setLoading(false);
     }
-};
+  };
 
   if (!isOpen) return null;
 
@@ -160,6 +181,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, fetc
             className="w-full px-3 py-2 border rounded"
             required
           />
+          {gradeError && <p className="text-red-500 text-sm">{gradeError}</p>}
           <input
             name="Department"
             type="text"

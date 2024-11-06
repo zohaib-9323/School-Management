@@ -151,7 +151,7 @@ const HomePage = () => {
                   <p className="font-medium text-gray-800">{teacher.name}</p>
                   <p className="text-sm text-gray-600">{teacher.course}</p>
                 </div>
-                <span className="text-sm text-gray-600">₹{teacher.charges}/hr</span>
+                <span className="text-sm text-gray-600">${teacher.charges}/hr</span>
               </div>
             ))}
           </div>

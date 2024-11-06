@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface LoginPageProps {
-  onLogin: (email: string, password: string) => Promise<void>; // Update to return a Promise
+  onLogin: (email: string, password: string) => Promise<void>;
   onSwitchToSignUp: () => void;
+  onSwitchToForgotPassword: () => void;  // New prop
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignUp }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ 
+  onLogin, 
+  onSwitchToSignUp, 
+  onSwitchToForgotPassword 
+}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -82,7 +87,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignUp }) => {
               </button>
             </div>
           </div>
+
           {error && <p className="text-red-500 text-sm">{error}</p>}
+
           <div>
             <button
               type="submit"
@@ -91,13 +98,28 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToSignUp }) => {
               Sign In
             </button>
           </div>
+
+          {/* Forgot Password and Sign Up Links */}
+          <div className="mt-4 flex flex-col space-y-2 text-center">
+            <button
+              type="button"
+              onClick={onSwitchToForgotPassword}
+              className="text-sm text-indigo-600 hover:text-indigo-500"
+            >
+              Forgot Password?
+            </button>
+            <div>
+              <span className="text-sm text-gray-600">Don't have an account? </span>
+              <button
+                type="button"
+                onClick={onSwitchToSignUp}
+                className="text-sm text-indigo-600 hover:text-indigo-500"
+              >
+                Sign up
+              </button>
+            </div>
+          </div>
         </form>
-        <div className="mt-4 text-center">
-          <span className="text-sm text-gray-600">Don't have an account? </span>
-          <button onClick={onSwitchToSignUp} className="text-sm text-indigo-600 hover:text-indigo-500">
-            Sign up
-          </button>
-        </div>
       </div>
     </div>
   );

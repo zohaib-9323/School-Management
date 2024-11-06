@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LoginPage from "./Components/pages/Login/Login";
 import SignUpPage from "./Components/pages/SignUp/Signup";
+import ForgotPasswordPage from "./Components/pages/Fogotpassword/Forgotpassword";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./Components/sidebar/Sidebar";
 import HomePage from './Components/sidebar/Home';
@@ -16,7 +17,7 @@ interface User {
 }
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<"login" | "signup" | "dashboard">("login");
+  const [currentPage, setCurrentPage] = useState<"login" | "signup" | "dashboard" | "forgotPassword">("login");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -40,11 +41,11 @@ const App: React.FC = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-  
+
       if (!response.ok) {
         throw new Error('Invalid email or password');
       }
-  
+
       const userData = await response.json();
       setIsLoggedIn(true);
       setCurrentUser(userData);
@@ -54,7 +55,7 @@ const App: React.FC = () => {
       console.error(error); // Handle error appropriately
     }
   };
-  
+
   const handleSignUp = (firstName: string, lastName: string, email: string, password: string) => {
     const newUser = { firstName, lastName, email, password };
     const updatedUsers = [...users, newUser];
@@ -74,6 +75,9 @@ const App: React.FC = () => {
 
   const switchToSignUp = () => setCurrentPage("signup");
   const switchToLogin = () => setCurrentPage("login");
+  const switchToForgotPassword = () => setCurrentPage("forgotPassword");
+
+  const switchToDashboard = () => setCurrentPage("dashboard");
 
   if (isLoggedIn && currentUser) {
     return (
@@ -96,10 +100,21 @@ const App: React.FC = () => {
   return (
     <div>
       {currentPage === "login" ? (
-        <LoginPage onLogin={handleLogin} onSwitchToSignUp={switchToSignUp} />
-      ) : (
-        <SignUpPage onSignUp={handleSignUp} onSwitchToLogin={switchToLogin} />
-      )}
+        <LoginPage 
+          onLogin={handleLogin} 
+          onSwitchToSignUp={switchToSignUp} 
+          onSwitchToForgotPassword={switchToForgotPassword} 
+        />
+      ) : currentPage === "signup" ? (
+        <SignUpPage 
+          onSignUp={handleSignUp} 
+          onSwitchToLogin={switchToLogin} 
+        />
+      ) : currentPage === "forgotPassword" ? (
+        <ForgotPasswordPage 
+          onSwitchToLogin={switchToLogin} 
+        />
+      ) : null}
     </div>
   );
 };

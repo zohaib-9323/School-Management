@@ -12,7 +12,7 @@ import EditStudentModal from "./Student/EditStudentModal";
 import DeleteConfirmationModal from "./Student/DeleteConfirmmationModal";
 
 interface Course {
-  id: number; 
+  id: string; 
   name: string;
 }
 
